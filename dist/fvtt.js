@@ -604,6 +604,12 @@ const character_settings = {
         "description": "Unleash your divine soul to deal extra radiant damage equal to your level.",
         "type": "bool",
         "default": false
+    },
+    "artificer-arcane-jolt": {
+        "title": "Artificer: Use Arcane Jolt",
+        "description": "Apply an Arcane Jolt to you or your Steel Defender's Weapon Attacks. Deals extra 2d6 damage, or 4d6 at Artificer Level 15+",
+        "type": "bool",
+        "default": false
     }
 }
 

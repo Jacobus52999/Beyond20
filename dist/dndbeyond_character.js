@@ -604,6 +604,12 @@ const character_settings = {
         "description": "Unleash your divine soul to deal extra radiant damage equal to your level.",
         "type": "bool",
         "default": false
+    },
+    "artificer-arcane-jolt": {
+        "title": "Artificer: Use Arcane Jolt",
+        "description": "Apply an Arcane Jolt to you or your Steel Defender's Weapon Attacks. Deals extra 2d6 damage, or 4d6 at Artificer Level 15+",
+        "type": "bool",
+        "default": false
     }
 }
 
@@ -4615,6 +4621,17 @@ function rollItem(force_display = false) {
                     brutal += 1;
             }
         }
+
+        //Artificer Battlemaster Arcane Jolt
+        // TODO: Implement for Steel Defender at later date
+        if (damages.length > 0 &&
+            character.hasClassFeature("Arcane Jolt") &&
+            character.getSetting("artificer-arcane-jolt", false) &&
+            item_type.indexOf(", Common") === -1) {
+            damages.push(character._level < 15 ? "2d6" : "4d6");
+            damage_types.push("Arcane Jolt");
+        }
+
         const roll_properties = buildAttackRoll(character,
             "item",
             item_name,

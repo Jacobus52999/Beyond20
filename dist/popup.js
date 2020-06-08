@@ -649,6 +649,12 @@ const character_settings = {
         "description": "Unleash your divine soul to deal extra radiant damage equal to your level.",
         "type": "bool",
         "default": false
+    },
+    "artificer-arcane-jolt": {
+        "title": "Artificer: Use Arcane Jolt",
+        "description": "Apply an Arcane Jolt to you or your Steel Defender's Weapon Attacks. Deals extra 2d6 damage, or 4d6 at Artificer Level 15+",
+        "type": "bool",
+        "default": false
     }
 }
 
@@ -1413,6 +1419,10 @@ function populateCharacter(response) {
         }
         if (response["racial-traits"].includes("Radiant Soul")) {
             e = createHTMLOption("protector-aasimar-radiant-soul", false, character_settings);
+            options.append(e);
+        }
+        if (response["class-features"].includes("Arcane Jolt")) {
+            e = createHTMLOption("artificer-arcane-jolt", false, character_settings);
             options.append(e);
         }
 
