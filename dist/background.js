@@ -649,6 +649,12 @@ const character_settings = {
         "description": "Unleash your divine soul to deal extra radiant damage equal to your level.",
         "type": "bool",
         "default": false
+    },
+    "wildfire-spirit-enhanced-bond": {
+        "title": "Wildfire Spirit: Enhanced Bond",
+        "description": "The bond with your wildfire spirit enhances your destructive and restorative spells.",
+        "type": "bool",
+        "default": false
     }
 }
 

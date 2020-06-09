@@ -649,6 +649,12 @@ const character_settings = {
         "description": "Unleash your divine soul to deal extra radiant damage equal to your level.",
         "type": "bool",
         "default": false
+    },
+    "wildfire-spirit-enhanced-bond": {
+        "title": "Wildfire Spirit: Enhanced Bond",
+        "description": "The bond with your wildfire spirit enhances your destructive and restorative spells.",
+        "type": "bool",
+        "default": false
     }
 }
 
@@ -1413,6 +1419,10 @@ function populateCharacter(response) {
         }
         if (response["racial-traits"].includes("Radiant Soul")) {
             e = createHTMLOption("protector-aasimar-radiant-soul", false, character_settings);
+            options.append(e);
+        }
+        if (response["class-features"].includes("Enhanced Bond")) {
+            e = createHTMLOption("wildfire-spirit-enhanced-bond", false, character_settings);
             options.append(e);
         }
 
