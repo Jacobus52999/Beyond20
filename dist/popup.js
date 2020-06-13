@@ -650,6 +650,7 @@ const character_settings = {
         "type": "bool",
         "default": false
     },
+    // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
     "wildfire-spirit-enhanced-bond": {
         "title": "Wildfire Spirit: Enhanced Bond",
         "description": "The bond with your wildfire spirit enhances your destructive and restorative spells.",
@@ -1421,6 +1422,7 @@ function populateCharacter(response) {
             e = createHTMLOption("protector-aasimar-radiant-soul", false, character_settings);
             options.append(e);
         }
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
         if (response["class-features"].includes("Enhanced Bond")) {
             e = createHTMLOption("wildfire-spirit-enhanced-bond", false, character_settings);
             options.append(e);

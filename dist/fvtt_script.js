@@ -606,6 +606,7 @@ const character_settings = {
         "type": "bool",
         "default": false
     },
+    // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
     "wildfire-spirit-enhanced-bond": {
         "title": "Wildfire Spirit: Enhanced Bond",
         "description": "The bond with your wildfire spirit enhances your destructive and restorative spells.",
@@ -2222,6 +2223,7 @@ class Beyond20RollRenderer {
                 all_rolls.push(roll);
                 const dmg_type = damage_types[i];
                 let damage_flags = DAMAGE_FLAGS.REGULAR;
+                // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
                 if (["Healing", "Disciple of Life", "Temp HP", "Enhanced Bond Healing"].includes(dmg_type)) {
                     damage_flags = DAMAGE_FLAGS.HEALING;
                 } else if (i == 0) {
@@ -2276,6 +2278,7 @@ class Beyond20RollRenderer {
                     critical_damage_rolls.push(roll);
                     const dmg_type = critical_damage_types[i];
                     let damage_flags = DAMAGE_FLAGS.REGULAR;
+                    // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
                     if (["Healing", "Disciple of Life", "Temp HP", "Enhanced Bond Healing"].includes(dmg_type)) {
                         damage_flags = DAMAGE_FLAGS.HEALING;
                     } else if (i == 0) {

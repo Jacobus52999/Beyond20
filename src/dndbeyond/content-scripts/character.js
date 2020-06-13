@@ -631,6 +631,7 @@ function rollSpell(force_display = false) {
             damage_types.push("Arcane Firearm");
         }
 
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
         if (character.hasClassFeature("Enhanced Bond") &&
             character.getSetting("wildfire-spirit-enhanced-bond", false) &&
             damages.length > 0) {
@@ -699,6 +700,7 @@ function rollSpell(force_display = false) {
             }
         }
 
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
         if (character.hasClassFeature("Enhanced Bond") &&
             character.getSetting("wildfire-spirit-enhanced-bond", false)) {
             for (let i = 0; i < damages.length; i++){
