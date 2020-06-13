@@ -605,6 +605,12 @@ const character_settings = {
         "description": "Unleash your divine soul to deal extra radiant damage equal to your level.",
         "type": "bool",
         "default": false
+    },
+    "fey-wanderer-dreadful-strikes": {
+        "title": "Fey Wanderer: Dreadful Strikes",
+        "description": "Imbue your weapons and deal psychic damage to your the minds of your enemies.",
+        "type": "bool",
+        "default": false
     }
 }
 

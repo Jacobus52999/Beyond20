@@ -604,6 +604,12 @@ const character_settings = {
         "description": "Unleash your divine soul to deal extra radiant damage equal to your level.",
         "type": "bool",
         "default": false
+    },
+    "fey-wanderer-dreadful-strikes": {
+        "title": "Fey Wanderer: Dreadful Strikes",
+        "description": "Imbue your weapons and deal psychic damage to your the minds of your enemies.",
+        "type": "bool",
+        "default": false
     }
 }
 
@@ -4542,6 +4548,12 @@ function rollItem(force_display = false) {
                 damages.push(ranger_level < 11 ? "1d6" : "2d6");
                 damage_types.push("Gathered Swarm");
             }
+        }
+
+        // FIXME: UA content, Ranger Fey Wanderer Feature, may need to be removed or corrected later
+        if (character.hasClassFeature("Dreadful Strikes") && character.getSetting("fey-wanderer-dreadful-strikes")) {
+            damages.push("1d6");
+            damage_types.push("Dreadful Strikes");
         }
 
         if (properties["Attack Type"] == "Melee" &&
