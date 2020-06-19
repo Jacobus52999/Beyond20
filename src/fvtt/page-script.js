@@ -7,7 +7,7 @@ var settings = null;
 var extension_url = "/modules/beyond20/";
 
 class FVTTDisplayer {
-    postHTML(request, title, html, buttons, character, whisper, play_sound) {
+    postHTML(request, title, html, buttons, character, whisper, play_sound, attack_rolls, damage_rolls) {
         Hooks.once('renderChatMessage', (chat_message, html, data) => {
             const icon = extension_url + "images/icons/badges/custom20.png";
             html.find(".ct-beyond20-custom-icon").attr('src', icon);
@@ -20,13 +20,22 @@ class FVTTDisplayer {
                 buttons[button]();
             });
         });
-        return this._postChatMessage(html, character, whisper, play_sound);
+        return this._postChatMessage(html, character, whisper, play_sound, attack_rolls, damage_rolls);
     }
 
-    _postChatMessage(message, character, whisper, play_sound = false) {
+    _postChatMessage(message, character, whisper, play_sound = false, attack_rolls, damage_rolls) {
         const MESSAGE_TYPES = CONST.CHAT_MESSAGE_TYPES || CHAT_MESSAGE_TYPES;
+        const pool = new DicePool([...attack_rolls, ...damage_rolls.map(d => d[1])].map(r => r._roll));
+        pool.roll();
+        const pool_roll = new Roll("");
+        pool_roll._result = [pool.total];
+        pool_roll._total = pool.total;
+        pool_roll._dice = pool.dice;
+        pool_roll._parts = [pool];
+        pool_roll._rolled = true;
         const data = {
             "content": message,
+            "roll": pool_roll,
             "user": game.user._id,
             "speaker": this._getSpeakerByName(character)
         }
@@ -37,7 +46,7 @@ class FVTTDisplayer {
             if (rollMode == "blindroll")
                 data["blind"] = true;
         } else {
-            data['type'] = MESSAGE_TYPES.OOC;
+            data['type'] = MESSAGE_TYPES.ROLL;
         }
         if (play_sound)
             data["sound"] = CONFIG.sounds.dice;
