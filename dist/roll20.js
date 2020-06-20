@@ -1520,7 +1520,8 @@ class DNDBDice {
         return {
             "total": this.total,
             "formula": this.formula,
-            "rolls": this.rolls
+            "rolls": this.rolls,
+            "faces": this.faces
         }
     }
 }

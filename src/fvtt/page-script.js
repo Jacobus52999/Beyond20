@@ -25,9 +25,25 @@ class FVTTDisplayer {
 
     _postChatMessage(message, character, whisper, play_sound = false, attack_rolls, damage_rolls) {
         const MESSAGE_TYPES = CONST.CHAT_MESSAGE_TYPES || CHAT_MESSAGE_TYPES;
-        const pool = new DicePool([...attack_rolls, ...damage_rolls.map(d => d[1])].map(r => r._roll));
+        let pool;
+        pool = new DicePool([...attack_rolls, ...damage_rolls.map(d => d[1])].map(r => {
+            if (r instanceof FVTTRoll) { return r._roll; }
+            r.class = "Roll";
+            r.dice = [];
+            r.parts = r.parts.map(p => {
+                if (p.formula) {
+                    p.class = "Die";
+                    const idx = r.dice.length;
+                    r.dice.push(p)
+                    return `_d${idx}`;
+                }
+                return p;
+            })
+            return Roll.fromData(r)
+        }));
         pool.roll();
-        const pool_roll = new Roll("");
+        const formulas = pool.dice.map(d => d.formula);
+        const pool_roll = new Roll(`{${formulas.join(",")}}`);
         pool_roll._result = [pool.total];
         pool_roll._total = pool.total;
         pool_roll._dice = pool.dice;
@@ -207,7 +223,8 @@ function handleRoll(request) {
 }
 function handleRenderedRoll(request) {
     console.log("Received rendered roll request ", request);
-    roll_renderer._displayer.postHTML(request.request, request.title, request.html, request.buttons, request.character, request.whisper, request.play_sound);
+    roll_renderer._displayer.postHTML(request.request, request.title, request.html, request.buttons, request.character, request.whisper, request.play_sound,
+        request.attack_rolls, request.damage_rolls);
 }
 
 function updateHP(name, current, total, temp) {
