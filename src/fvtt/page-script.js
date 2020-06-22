@@ -25,8 +25,7 @@ class FVTTDisplayer {
 
     _postChatMessage(message, character, whisper, play_sound = false, attack_rolls, damage_rolls) {
         const MESSAGE_TYPES = CONST.CHAT_MESSAGE_TYPES || CHAT_MESSAGE_TYPES;
-        let pool;
-        pool = new DicePool([...attack_rolls, ...damage_rolls.map(d => d[1])].map(r => {
+        const pool = new DicePool([...attack_rolls, ...damage_rolls.map(d => d[1])].map(r => {
             if (r instanceof FVTTRoll) { return r._roll; }
             r.class = "Roll";
             r.dice = [];
