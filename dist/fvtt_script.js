@@ -2555,18 +2555,29 @@ class FVTTDisplayer {
         pool_roll._rolled = true;
         const data = {
             "content": message,
-            "roll": pool_roll,
             "user": game.user._id,
             "speaker": this._getSpeakerByName(character)
         }
         const rollMode = this._whisperToRollMode(whisper);
         if (["gmroll", "blindroll"].includes(rollMode)) {
-            data['type'] = MESSAGE_TYPES.ROLL;
-            data["whisper"] = ChatMessage.getWhisperIDs("GM");
+            data['type'] = MESSAGE_TYPES.WHISPER;
+            if (attack_rolls.length > 0 || damage_rolls.length > 0) {
+                data.type = MESSAGE_TYPES.ROLL;
+                data.roll = pool_roll;
+            }
+            else {
+                data["whisper"] = ChatMessage.getWhisperIDs("GM");
+            }
             if (rollMode == "blindroll")
                 data["blind"] = true;
         } else {
-            data['type'] = MESSAGE_TYPES.ROLL;
+            if (attack_rolls.length > 0 || damage_rolls.length > 0) {
+                data.type = MESSAGE_TYPES.ROLL;
+                data.roll = pool_roll;
+            }
+            else {
+                data['type'] = MESSAGE_TYPES.OOC;
+            }
         }
         if (play_sound)
             data["sound"] = CONFIG.sounds.dice;
