@@ -55,13 +55,13 @@ class FVTTDisplayer {
         }
         const rollMode = this._whisperToRollMode(whisper);
         if (["gmroll", "blindroll"].includes(rollMode)) {
-            data['type'] = MESSAGE_TYPES.WHISPER;
+            data["whisper"] = ChatMessage.getWhisperIDs("GM");
             if (attack_rolls.length > 0 || damage_rolls.length > 0) {
                 data.type = MESSAGE_TYPES.ROLL;
                 data.roll = pool_roll;
             }
             else {
-                data["whisper"] = ChatMessage.getWhisperIDs("GM");
+                data['type'] = MESSAGE_TYPES.WHISPER;
             }
             if (rollMode == "blindroll")
                 data["blind"] = true;
