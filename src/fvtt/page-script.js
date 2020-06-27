@@ -25,29 +25,6 @@ class FVTTDisplayer {
 
     _postChatMessage(message, character, whisper, play_sound = false, attack_rolls, damage_rolls) {
         const MESSAGE_TYPES = CONST.CHAT_MESSAGE_TYPES || CHAT_MESSAGE_TYPES;
-        const pool = new DicePool([...attack_rolls, ...damage_rolls.map(d => d[1])].map(r => {
-            if (r instanceof FVTTRoll) { return r._roll; }
-            r.class = "Roll";
-            r.dice = [];
-            r.parts = r.parts.map(p => {
-                if (p.formula) {
-                    p.class = "Die";
-                    const idx = r.dice.length;
-                    r.dice.push(p)
-                    return `_d${idx}`;
-                }
-                return p;
-            })
-            return Roll.fromData(r)
-        }));
-        pool.roll();
-        const formulas = pool.dice.map(d => d.formula);
-        const pool_roll = new Roll(`{${formulas.join(",")}}`);
-        pool_roll._result = [pool.total];
-        pool_roll._total = pool.total;
-        pool_roll._dice = pool.dice;
-        pool_roll._parts = [pool];
-        pool_roll._rolled = true;
         const data = {
             "content": message,
             "user": game.user._id,
@@ -56,26 +33,44 @@ class FVTTDisplayer {
         const rollMode = this._whisperToRollMode(whisper);
         if (["gmroll", "blindroll"].includes(rollMode)) {
             data["whisper"] = ChatMessage.getWhisperIDs("GM");
-            if (attack_rolls.length > 0 || damage_rolls.length > 0) {
-                data.type = MESSAGE_TYPES.ROLL;
-                data.roll = pool_roll;
-            }
-            else {
-                data['type'] = MESSAGE_TYPES.WHISPER;
-            }
+            data['type'] = MESSAGE_TYPES.WHISPER;
             if (rollMode == "blindroll")
                 data["blind"] = true;
         } else {
-            if (attack_rolls.length > 0 || damage_rolls.length > 0) {
-                data.type = MESSAGE_TYPES.ROLL;
-                data.roll = pool_roll;
-            }
-            else {
-                data['type'] = MESSAGE_TYPES.OOC;
-            }
+            data['type'] = MESSAGE_TYPES.OOC;
         }
         if (play_sound)
             data["sound"] = CONFIG.sounds.dice;
+        // If there are attack roll(s) or damage_roll(s)
+        // Build a dicePool, attach it to a Roll, then attach it to the ChatMessage
+        // Then set ChatMessage type to "ROLL"
+        if (attack_rolls.length > 0 || damage_rolls.length > 0) {
+            const pool = new DicePool([...attack_rolls, ...damage_rolls.map(d => d[1])].map(r => {
+                if (r instanceof FVTTRoll) { return r._roll; }
+                r.class = "Roll";
+                r.dice = [];
+                r.parts = r.parts.map(p => {
+                    if (p.formula) {
+                        p.class = "Die";
+                        const idx = r.dice.length;
+                        r.dice.push(p)
+                        return `_d${idx}`;
+                    }
+                    return p;
+                })
+                return Roll.fromData(r)
+            }));
+            pool.roll();
+            const formulas = pool.dice.map(d => d.formula);
+            const pool_roll = new Roll(`{${formulas.join(",")}}`);
+            pool_roll._result = [pool.total];
+            pool_roll._total = pool.total;
+            pool_roll._dice = pool.dice;
+            pool_roll._parts = [pool];
+            pool_roll._rolled = true;
+            data.roll = pool_roll;
+            data.type = MESSAGE_TYPES.ROLL;
+        }
         return ChatMessage.create(data);
     }
 
