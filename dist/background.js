@@ -663,6 +663,12 @@ const character_settings = {
         "description": "Activate your Bladesong and make your weapon sing with magic",
         "type": "bool",
         "default": false
+    },
+    "paladin-invincible-conqueror": {
+        "title": "Paladin: Oath of Conquest: Invincible Conqueror",
+        "description": "You can harness extraordinary martial prowess for 1 minute.",
+        "type": "bool",
+        "default": false
     }
 }
 

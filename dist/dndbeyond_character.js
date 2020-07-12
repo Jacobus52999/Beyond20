@@ -618,6 +618,12 @@ const character_settings = {
         "description": "Activate your Bladesong and make your weapon sing with magic",
         "type": "bool",
         "default": false
+    },
+    "paladin-invincible-conqueror": {
+        "title": "Paladin: Oath of Conquest: Invincible Conqueror",
+        "description": "You can harness extraordinary martial prowess for 1 minute.",
+        "type": "bool",
+        "default": false
     }
 }
 
@@ -4671,6 +4677,9 @@ function rollItem(force_display = false) {
             critical_limit = 19;
         if (character.hasClassFeature("Improved Critical"))
             critical_limit = 19;
+        if (character.hasClassFeature("Invincible Conqueror") &&
+            character.getSetting("paladin-invincible-conqueror", false))
+            critical_limit = 19;
         if (character.hasClassFeature("Superior Critical"))
             critical_limit = 18;
 
@@ -4786,6 +4795,9 @@ function rollAction(paneClass) {
                 character.getSetting("paladin-legendary-strike", false))
                 critical_limit = 19;
             if (character.hasClassFeature("Improved Critical"))
+                critical_limit = 19;
+            if (character.hasClassFeature("Invincible Conqueror") &&
+                character.getSetting("paladin-invincible-conqueror", false))
                 critical_limit = 19;
             if (character.hasClassFeature("Superior Critical"))
                 critical_limit = 18;

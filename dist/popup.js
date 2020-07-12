@@ -663,6 +663,12 @@ const character_settings = {
         "description": "Activate your Bladesong and make your weapon sing with magic",
         "type": "bool",
         "default": false
+    },
+    "paladin-invincible-conqueror": {
+        "title": "Paladin: Oath of Conquest: Invincible Conqueror",
+        "description": "You can harness extraordinary martial prowess for 1 minute.",
+        "type": "bool",
+        "default": false
     }
 }
 
@@ -1431,6 +1437,10 @@ function populateCharacter(response) {
         }
         if (response["class-features"].includes("Bladesong")) {
             e = createHTMLOption("wizard-bladesong", false, character_settings);
+            options.append(e);
+        }
+        if (response["class-features"].includes("Invincible Conqueror")) {
+            e = createHTMLOption("paladin-invincible-conqueror", false, character_settings);
             options.append(e);
         }
 
