@@ -583,7 +583,21 @@ function rollSpellAttack(request, custom_roll_dice) {
             }
         }
     }
-
+    
+    if (settings["roll20-spell-description-display"] === true) {
+        if (settings["components-display"] === "all") {
+            properties["desc"] += "\r\n\r\nDescription: " + request.description;
+        } else if (settings["components-display"] === "material") {
+            if (properties["desc"] != undefined) {
+                properties["desc"] += "\r\n\r\nDescription: " + request.description;
+            } else {
+                properties["desc"] = "Description: " + request.description;
+            }
+        } else {
+            properties["desc"] = "Description: " + request.description;
+        }
+    }
+    
     if (request.damages !== undefined && request["to-hit"] !== undefined && !settings["auto-roll-damage"]) {
         template_type = "atk";
         dmg_props["charname"] = request.character.name;
