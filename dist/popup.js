@@ -699,6 +699,13 @@ const character_settings = {
         "description": "Activate your Bladesong and make your weapon sing with magic",
         "type": "bool",
         "default": false
+    },
+    // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+    "wildfire-spirit-enhanced-bond": {
+        "title": "Wildfire Spirit: Enhanced Bond",
+        "description": "The bond with your wildfire spirit enhances your destructive and restorative spells.",
+        "type": "bool",
+        "default": false
     }
 }
 
@@ -1487,8 +1494,9 @@ function populateCharacter(response) {
             e = createHTMLOption("protector-aasimar-radiant-soul", false, character_settings);
             options.append(e);
         }
-        if (response["class-features"].includes("Bladesong")) {
-            e = createHTMLOption("wizard-bladesong", false, character_settings);
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+        if (response["class-features"].includes("Enhanced Bond")) {
+            e = createHTMLOption("wildfire-spirit-enhanced-bond", false, character_settings);
             options.append(e);
         }
 

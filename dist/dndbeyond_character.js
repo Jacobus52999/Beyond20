@@ -654,6 +654,13 @@ const character_settings = {
         "description": "Activate your Bladesong and make your weapon sing with magic",
         "type": "bool",
         "default": false
+    },
+    // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+    "wildfire-spirit-enhanced-bond": {
+        "title": "Wildfire Spirit: Enhanced Bond",
+        "description": "The bond with your wildfire spirit enhances your destructive and restorative spells.",
+        "type": "bool",
+        "default": false
     }
 }
 
@@ -2293,7 +2300,8 @@ class Beyond20RollRenderer {
                 all_rolls.push(roll);
                 const dmg_type = damage_types[i];
                 let damage_flags = DAMAGE_FLAGS.REGULAR;
-                if (["Healing", "Disciple of Life", "Temp HP"].includes(dmg_type)) {
+                // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+                if (["Healing", "Disciple of Life", "Temp HP", "Enhanced Bond Healing"].includes(dmg_type)) {
                     damage_flags = DAMAGE_FLAGS.HEALING;
                 } else if (i == 0) {
                     damage_flags = DAMAGE_FLAGS.REGULAR;
@@ -2353,7 +2361,8 @@ class Beyond20RollRenderer {
                     critical_damage_rolls.push(roll);
                     const dmg_type = critical_damage_types[i];
                     let damage_flags = DAMAGE_FLAGS.REGULAR;
-                    if (["Healing", "Disciple of Life", "Temp HP"].includes(dmg_type)) {
+                    // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+                    if (["Healing", "Disciple of Life", "Temp HP", "Enhanced Bond Healing"].includes(dmg_type)) {
                         damage_flags = DAMAGE_FLAGS.HEALING;
                     } else if (i == 0) {
                         damage_flags = DAMAGE_FLAGS.REGULAR;
@@ -5048,6 +5057,19 @@ function rollSpell(force_display = false, force_to_hit_only = false, force_damag
             damage_types.push("Arcane Firearm");
         }
 
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+        if (character.hasClassFeature("Enhanced Bond") &&
+            character.getSetting("wildfire-spirit-enhanced-bond", false) &&
+            damages.length > 0) {
+            for (let i = 0; i < damages.length; i++){
+                if (damage_types[i] === "Fire") {
+                    damages.push("1d8");
+                    damage_types.push("Enhanced Bond");
+                    break;
+                }
+            }
+        }
+
         //Handle Flames of Phlegethos
         if (damages.length > 0 &&
             character.hasFeat("Flames of Phlegethos")) {
@@ -5101,6 +5123,18 @@ function rollSpell(force_display = false, force_to_hit_only = false, force_damag
             if (dmg.length > 0) {
                 damages.push(dmg);
                 damage_types.push("Healing");
+            }
+        }
+
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+        if (character.hasClassFeature("Enhanced Bond") &&
+            character.getSetting("wildfire-spirit-enhanced-bond", false)) {
+            for (let i = 0; i < damages.length; i++){
+                if (damage_types[i] === "Healing") {
+                    damages.push("1d8");
+                    damage_types.push("Enhanced Bond Healing");
+                    break;
+                }
             }
         }
 

@@ -669,6 +669,19 @@ function rollSpell(force_display = false, force_to_hit_only = false, force_damag
             damage_types.push("Arcane Firearm");
         }
 
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+        if (character.hasClassFeature("Enhanced Bond") &&
+            character.getSetting("wildfire-spirit-enhanced-bond", false) &&
+            damages.length > 0) {
+            for (let i = 0; i < damages.length; i++){
+                if (damage_types[i] === "Fire") {
+                    damages.push("1d8");
+                    damage_types.push("Enhanced Bond");
+                    break;
+                }
+            }
+        }
+
         //Handle Flames of Phlegethos
         if (damages.length > 0 &&
             character.hasFeat("Flames of Phlegethos")) {
@@ -722,6 +735,18 @@ function rollSpell(force_display = false, force_to_hit_only = false, force_damag
             if (dmg.length > 0) {
                 damages.push(dmg);
                 damage_types.push("Healing");
+            }
+        }
+
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+        if (character.hasClassFeature("Enhanced Bond") &&
+            character.getSetting("wildfire-spirit-enhanced-bond", false)) {
+            for (let i = 0; i < damages.length; i++){
+                if (damage_types[i] === "Healing") {
+                    damages.push("1d8");
+                    damage_types.push("Enhanced Bond Healing");
+                    break;
+                }
             }
         }
 

@@ -187,6 +187,11 @@ function populateCharacter(response) {
             e = createHTMLOption("wizard-bladesong", false, character_settings);
             options.append(e);
         }
+        // FIXME: UA Content, Wildfire Druid, Wildfire Spirit Enhanced Bond
+        if (response["class-features"].includes("Enhanced Bond")) {
+            e = createHTMLOption("wildfire-spirit-enhanced-bond", false, character_settings);
+            options.append(e);
+        }
 
         loadSettings(response.settings, character_settings);
     }
