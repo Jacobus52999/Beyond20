@@ -1,7 +1,7 @@
 console.log("Beyond20: Roll20 module loaded.");
 
 const ROLL20_WHISPER_QUERY = "?{Whisper?|Public Roll,|Whisper Roll,/w gm }"
-const ROLL20_ADVANTAGE_QUERY = "{{query=1}} ?{Advantage?|Normal Roll,&#123&#123normal=1&#125&#125|Advantage,&#123&#123advantage=1&#125&#125 &#123&#123r2={r2}&#125&#125|Disadvantage,&#123&#123disadvantage=1&#125&#125 &#123&#123r2={r2}&#125&#125|Super Advantage,&#123&#123advantage=1&#125&#125 &#123&#123r2={r2kh}&#125&#125|Super Disadvantage,&#123&#123disadvantage=1&#125&#125 &#123&#123r2={r2kl}&#125&#125}"
+const ROLL20_ADVANTAGE_QUERY = "{{query=1}} ?{Advantage?|Normal Roll,&#123&#123normal=1&#125&#125|Advantage,&#123&#123advantage=1&#125&#125 &#123&#123r2={r2}&#125&#125|Disadvantage,&#123&#123disadvantage=1&#125&#125 &#123&#123r2={r2}&#125&#125|Roll Twice,&#123&#123always=1&#125&#125 &#123&#123r2={r2}&#125&#125|Super Advantage,&#123&#123advantage=1&#125&#125 &#123&#123r2={r2kh}&#125&#125|Super Disadvantage,&#123&#123disadvantage=1&#125&#125 &#123&#123r2={r2kl}&#125&#125}"
 const ROLL20_INITIATIVE_ADVANTAGE_QUERY = "?{Roll Initiative with advantage?|Normal Roll,1d20|Advantage,2d20kh1|Disadvantage,2d20kl1|Super Advantage,3d20kh1|Super Disadvantage,3d20kl1}"
 const ROLL20_TOLL_THE_DEAD_QUERY = "?{Is the target missing any of its hit points?|Yes,d12|No,d8}"
 const ROLL20_ADD_GENERIC_DAMAGE_DMG_QUERY = "?{Add %dmgType% damage?|No,0|Yes,%dmg%}"
@@ -191,7 +191,8 @@ function template(request, name, properties) {
     for (let key in properties)
         result += " {{" + key + "=" + properties[key] + "}}";
 
-    if (request.advantage !== undefined && properties.normal === undefined && ["simple", "atk", "atkdmg"].includes(name))
+    if (request.advantage !== undefined && properties.normal === undefined && properties.always === undefined
+        && ["simple", "atk", "atkdmg"].includes(name))
         result += advantageString(request.advantage, properties["r1"]);
 
     // Super advantage/disadvantage is not supported
@@ -295,18 +296,33 @@ function rollInitiative(request, custom_roll_dice = "") {
     }
     if (settings["initiative-tracker"]) {
         let dice = "1d20";
-        if (request.advantage == RollType.ADVANTAGE)
+        let r2 = false;
+        let indicator = "";
+        if (request.advantage == RollType.DOUBLE || request.advantage == RollType.THRICE) {
+            dice = "1d20";
+            r2 = true;
+        } else if (request.advantage == RollType.ADVANTAGE) {
             dice = "2d20kh1";
-        else if (request.advantage == RollType.SUPER_ADVANTAGE)
+            indicator = " (Advantage)";
+        } else if (request.advantage == RollType.SUPER_ADVANTAGE) {
             dice = "3d20kh1";
-        else if (request.advantage == RollType.DISADVANTAGE)
+            indicator = " (S Advantage)";
+        } else if (request.advantage == RollType.DISADVANTAGE) {
             dice = "2d20kl1";
-        else if (request.advantage == RollType.SUPER_DISADVANTAGE)
+            indicator = " (Disadvantage)";
+        } else if (request.advantage == RollType.SUPER_DISADVANTAGE) {
             dice = "3d20kl1";
-        else if (request.advantage == RollType.DOUBLE || request.advantage == RollType.THRICE || request.advantage == RollType.QUERY)
+            indicator = " (S Disadvantage)";
+        } else if (request.advantage == RollType.QUERY) {
             dice = ROLL20_INITIATIVE_ADVANTAGE_QUERY;
-        roll_properties["r1"] = genRoll(dice, { "INIT": request.initiative, "CUSTOM": custom_roll_dice, "": "&{tracker}" });
-        roll_properties["normal"] = 1;
+        }
+        roll_properties["r1"] = genRoll(dice, { "INIT": request.initiative, "CUSTOM": custom_roll_dice, "": "&{tracker}"}) + indicator;
+        if (r2) {
+            roll_properties["r2"] = genRoll(dice, { "INIT": request.initiative, "CUSTOM": custom_roll_dice});
+            roll_properties["always"] = 1;
+        } else {
+            roll_properties["normal"] = 1;
+        }
     } else {
         roll_properties["r1"] = genRoll("1d20", { "INIT": request.initiative, "CUSTOM": custom_roll_dice });
     }
@@ -672,6 +688,8 @@ async function handleRoll(request) {
         roll = rollSpellCard(request);
     } else if (request.type == "spell-attack") {
         roll = rollSpellAttack(request, custom_roll_dice);
+    } else if (request.type == "chat-message") {
+        roll = request.message;
     } else {
         // 'custom' || anything unexpected;
         const mod = request.modifier != undefined ? request.modifier : request.roll;
@@ -932,14 +950,22 @@ function handleMessage(request, sender, sendResponse) {
                 conditions = request.character.conditions.concat([`Exhausted (Level ${request.character.exhaustion})`]);
             }
 
-            // We can't use window.is_gm because it's  !available to the content script;
+            // We can't use window.is_gm because it's not available to the content script
             const is_gm = $("#textchat .message.system").text().includes("The player link for this campaign is");
-            const em_command = is_gm ? "/emas " : "/em ";
+            let em_command = `/emas "${character_name}" `;
+            if (!is_gm) {
+                // Add character name only if we can't speak as them
+                const availableAs = Array.from(speakingas.children).map(c => c.text.toLowerCase())
+                if (availableAs.includes(character_name.toLowerCase()))
+                    em_command = "/em ";
+                else
+                    em_command = `/em | ${character_name} `;
+            }
             let message = "";
             if (conditions.length == 0) {
-                message = em_command + character_name + " has no active condition";
+                message = em_command + "has no active conditions";
             } else {
-                message = em_command + character_name + " is : " + conditions.join(", ");
+                message = em_command + "is: " + conditions.join(", ");
             }
             postChatMessage(message, character_name);
         }

@@ -130,8 +130,15 @@ function isObjectEqual(obj1, obj2) {
 // replaces matchAll, requires a non global regexp
 function reMatchAll(regexp, string) {
     const matches = string.match(new RegExp(regexp, "gm"));
-    if (matches)
-        return matches.map(group0 => group0.match(regexp));
+    if ( matches) {
+        let start = 0;
+        return matches.map(group0 => {
+            const match = group0.match(regexp);
+            match.index = string.indexOf(group0, start);
+            start = match.index;
+            return match;
+        });
+    }
     return matches;
 }
 
@@ -330,6 +337,16 @@ const options_list = {
         "choices": { "roll20": "D&D 5E By Roll20", "default": "Beyond20 Roll Renderer" }
     },
 
+    "notes-to-vtt": {
+        "title": "Send custom text to the VTT (currently Roll20 only)",
+        "description": "In the \"Notes\" or \"Description\" section of any item, action, or spell on the D&D Beyond Character Sheet, "
+            + "you may add your own custom text to be sent to the VTT as a message when you use that element's roll action."
+            + "\nTo do this, format the text you wish to send as follows:"
+            + "\n[[msg-type]] Put text you wish to send HERE[[/msg-type]]"
+            + "\nReplace \"msg-type\" with one of the following: \"before\", \"after\", or \"replace\" depending on how you want to affect the message or action that would normally be sent to the VTT.",
+        "type": "info"
+    },
+
     "subst-roll20": {
         "type": "migrate",
         "to": "subst-vtt",
@@ -442,6 +459,12 @@ const options_list = {
         "hidden": true,
         "default": ""
     },
+    "migrated-sync-settings": {
+        "description": "Whether the user settings were migrated from sync storage to local storage",
+        "type": "bool",
+        "hidden": true,
+        "default": false
+    },
 
     "sync-combat-tracker": {
         "title": "Synchronize the Combat Tracker with the VTT",
@@ -464,6 +487,12 @@ const options_list = {
 }
 
 const character_settings = {
+    "migrated-sync-settings": {
+        "description": "Whether the user settings were migrated from sync storage to local storage",
+        "type": "bool",
+        "hidden": true,
+        "default": false
+    },
     "versatile-choice": {
         "title": "Versatile weapon choice",
         "description": "How to roll damage for Versatile weapons",
@@ -529,6 +558,12 @@ const character_settings = {
         "description": "Add Rage damage to melee attacks and add advantage to Strength checks and saving throws",
         "type": "bool",
         "default": false
+    },
+    "barbarian-divine-fury": {
+        "title": "Barbarian: Divine Fury",
+        "description": "Add Divine Fury damage to your attack (when raging)",
+        "type": "bool",
+        "default": true
     },
     "bloodhunter-crimson-rite": {
         "title": "Bloodhunter: Crimson Rite",
@@ -623,7 +658,7 @@ const character_settings = {
 }
 
 function getStorage() {
-    return chrome.storage.sync;
+    return chrome.storage.local;
 }
 
 function storageGet(name, default_value, cb) {
@@ -657,7 +692,7 @@ function getDefaultSettings(_list = options_list) {
 
 function getStoredSettings(cb, key = "settings", _list = options_list) {
     const settings = getDefaultSettings(_list);
-    storageGet(key, settings, (stored_settings) => {
+    storageGet(key, settings, async (stored_settings) => {
         //console.log("Beyond20: Stored settings (" + key + "):", stored_settings);
         const migrated_keys = [];
         for (let opt in settings) {
@@ -674,6 +709,17 @@ function getStoredSettings(cb, key = "settings", _list = options_list) {
                 // On Firefox, if setting is not in storage, it won't return the default value
                 stored_settings[opt] = settings[opt];
             }
+        }
+        // Migrate settings from sync storage to local storage
+        if (!stored_settings["migrated-sync-settings"]) {
+            await new Promise(resolve => {
+                chrome.storage.sync.get({ [key]: stored_settings }, (items) => {
+                    stored_settings = Object.assign(stored_settings, items[key]);
+                    resolve();
+                });
+            });;
+            stored_settings["migrated-sync-settings"] = true;
+            migrated_keys.push("migrated-sync-settings");
         }
         if (migrated_keys.length > 0) {
             console.log("Beyond20: Migrated some keys:", stored_settings);
@@ -765,6 +811,13 @@ function createHTMLOptionEx(name, option, short = false) {
                         })
                     )
                 )
+            )
+        );
+    } else if (option.type == "info") {
+        e = E.li({ class: "list-group-item beyond20-option beyond20-option-info" },
+            E.label({ class: "list-content", for: name, style: "background-color: LightCyan;"},
+                E.h4({}, title),
+                ...description_p
             )
         );
     } else if (option.type == "special") {
@@ -1707,7 +1760,7 @@ class Beyond20RollRenderer {
             [RollType.SUPER_ADVANTAGE]: "Super Advantage",
             [RollType.SUPER_DISADVANTAGE]: "Super Disadvantage"
         }
-        const order = [RollType.DOUBLE, RollType.NORMAL, RollType.ADVANTAGE, RollType.DISADVANTAGE, RollType.THRICE, RollType.SUPER_ADVANTAGE, RollType.SUPER_DISADVANTAGE];
+        const order = [RollType.NORMAL, RollType.ADVANTAGE, RollType.DISADVANTAGE, RollType.DOUBLE, RollType.THRICE, RollType.SUPER_ADVANTAGE, RollType.SUPER_DISADVANTAGE];
         return parseInt(await this.queryGeneric(title, "Select roll mode : ", choices, "roll-mode", order));
     }
 
@@ -1976,6 +2029,17 @@ class Beyond20RollRenderer {
         } else {
             return null;
         }
+    }
+
+    postMessage(request, title, message) {
+        const character = (request.whisper == WhisperType.HIDE_NAMES) ? "???" : request.character.name;
+        if (request.whisper == WhisperType.HIDE_NAMES)
+            title = "???";
+        if (request.sendMessage && this._displayer.sendMessage)
+            this._displayer.sendMessage(request, title, message, character, request.whisper, false, '', {}, '', [], [], [], [], true);
+        else
+            this._displayer.postHTML(request, title, message, character, request.whisper, false, '', {}, '', [], [], [], [], true);
+
     }
 
     createRoll(dice, data) {
@@ -2448,6 +2512,8 @@ class Beyond20RollRenderer {
             return this.rollSpellCard(request);
         } else if (request.type == "spell-attack") {
             return this.rollSpellAttack(request, custom_roll_dice);
+        } else if (request.type == "chat-message") {
+            return this.postMessage(request, request.name, request.message);
         } else {
             // 'custom' || anything unexpected;
             const mod = request.modifier || request.roll;
@@ -2524,15 +2590,22 @@ if (alertify.Beyond20Roll === undefined)
     alertify.dialog('Beyond20Roll', function () { return {}; }, false, "alert");
 
 class DigitalDice {
-    constructor(name, dice) {
+    constructor(name, rolls) {
         this._name = name;
-        this._dice = dice;
+        this._rolls = rolls;
+        this._dice = [];
+        for (let roll of rolls) {
+            this._dice.push(...roll.dice);
+        }
         for (let dice of this._dice) {
+            // Need access to the roll Class used to create the fake Roll on reroll
+            const rollClass = this._rolls[0].constructor;
             dice.rerollDice = async function (amount) {
-                const fake = new this.constructor(amount, this.faces, "");
-                const digital = new DigitalDice(name, [fake])
+                const fakeDice = new this.constructor(amount, this.faces, "");
+                const fakeRoll = new rollClass(fakeDice.formula);
+                const digital = new DigitalDice(name, [fakeRoll])
                 await digital.roll();
-                this._rolls.push(...fake._rolls);
+                this._rolls.push(...fakeRoll.dice[0]._rolls);
             }
         }
         this._notificationIds = this._getNotificationIds();
@@ -2565,7 +2638,7 @@ class DigitalDice {
             diceRolled += this.rollDice(dice.amount, `d${dice.faces}`);
         if (diceRolled > 0) {
             this._makeRoll();
-            return this.result()
+            return this.result();
         }
     }
     _getNotificationIds() {
@@ -2579,9 +2652,11 @@ class DigitalDice {
         if (!myId) return false;
 
         const result = $(`#${myId} .dice_result`);
+        this._myId = myId;
+        this._myResult = result;
+        
         result.find(".dice_result__info__title .dice_result__info__rolldetail").text("Beyond 20: ")
         result.find(".dice_result__info__title .dice_result__rolltype").text(this._name);
-        result.find(".dice_result__total").text("").append(E.img({ src: chrome.extension.getURL("images/icons/icon32.png") }));
         const breakdown = result.find(".dice_result__info__results .dice_result__info__breakdown").text();
         const dicenotation = result.find(".dice_result__info__dicenotation").text();
 
@@ -2601,7 +2676,6 @@ class DigitalDice {
                 }
             }
         }
-
         this._notificationIds = notifications;
         return true;
     }
@@ -2610,6 +2684,11 @@ class DigitalDice {
             await new Promise(r => setTimeout(r, 500));
         for (let dice of this._dice)
             await dice.handleModifiers();
+        this._rolls.forEach(roll => roll.calculateTotal());
+        
+        this._myResult.find(".dice_result__total-result").text(this._rolls[0].total);
+        this._myResult.find(".dice_result__info__results .dice_result__info__breakdown").text(this._rolls[0].formula)
+        this._myResult.find(".dice_result__info__dicenotation").text(`${this._rolls.length} roll${this._rolls.length > 1 ? 's' : ''} sent to VTT`).prepend(E.img({ src: chrome.extension.getURL("images/icons/icon32.png") }))
     }
 }
 /*
@@ -2690,13 +2769,8 @@ class DNDBRoller {
     }
     async resolveRolls(name, rolls) {
         if (dndbeyondDiceRoller._settings['use-digital-dice'] && DigitalDice.isEnabled()) {
-            const dice = [];
-            for (let roll of rolls) {
-                dice.push(...roll.dice);
-            }
-            const digital = new DigitalDice(name, dice);
-            await digital.roll();
-            rolls.forEach(roll => roll.calculateTotal());
+            const digital = new DigitalDice(name, rolls);
+            return digital.roll();
         } else {
             return Promise.all(rolls.map(roll => roll.roll()))
         }
@@ -2856,12 +2930,12 @@ function propertyListToDict(propList) {
 function descriptionToString(selector) {
     // strip tags : https://www.sitepoint.com/jquery-strip-html-tags-div/;
     return ($(selector).html() || "").replace(/<\/?[^>]+>/gi, '')
-        .replace("&nbsp;", " ")
-        .replace("&amp;", "&")
-        .replace("&quot;", "\"")
-        .replace("&apos;", "\'")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">");
+        .replace(/&nbsp;/g, " ")
+        .replace(/&amp;/g, "&")
+        .replace(/&quot;/g, "\"")
+        .replace(/&apos;/g, "\'")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">");
 }
 
 function findToHit(name_to_match, items_selector, name_selector, tohit_selector) {
@@ -3280,7 +3354,7 @@ function addDisplayButton() {
     const item_name = $(".page-title").text().trim();
     const item_type = descriptionToString(".item-details .item-info .details, .details-container-equipment .details-container-content-description > div > .details-container-content-description-text");
     const description = descriptionToString(".item-details .more-info-content, .details-container-equipment .marginBottom20 + .details-container-content-description-text");
-    const item_tags = $(".details-container-content-footer .tags").find(".tag").toArray().map(elem => elem.textContent);
+    const item_tags = $(".details-container-content-footer .tags .tag").toArray().map(elem => elem.textContent);
     $(".page-heading__content").after(button);
 
     $(".ct-beyond20-roll").css({

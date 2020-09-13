@@ -231,7 +231,8 @@ function rollItem(force_display = false, force_to_hit_only = false, force_damage
             damages.push(String(rage_damage));
             damage_types.push("Rage");
         }
-        if (character.hasClassFeature("Rage") && character.getSetting("barbarian-rage", false) && character.hasClassFeature("Divine Fury") &&
+        if (character.hasClassFeature("Rage") && character.getSetting("barbarian-rage", false) &&
+            character.getSetting("barbarian-divine-fury", true) && character.hasClassFeature("Divine Fury") &&
             properties["Attack Type"] == "Melee") {
             const barbarian_level = character.getClassLevel("Barbarian");
             damages.push(`1d6+${Math.floor(barbarian_level / 2)}`);
@@ -508,7 +509,8 @@ function rollAction(paneClass, force_to_hit_only = false, force_damages_only = f
                 damages.push(String(rage_damage));
                 damage_types.push("Rage");
             }
-            if (character.hasClassFeature("Rage") && character.getSetting("barbarian-rage", false) && character.hasClassFeature("Divine Fury")) {
+            if (character.hasClassFeature("Rage") && character.getSetting("barbarian-rage", false) &&
+                character.getSetting("barbarian-divine-fury", true) && character.hasClassFeature("Divine Fury")) {
                 const barbarian_level = character.getClassLevel("Barbarian");
                 damages.push(`1d6+${Math.floor(barbarian_level / 2)}`);
                 damage_types.push("Divine Fury");
@@ -857,10 +859,20 @@ function displayFeature(paneClass) {
 
 function displayTrait() {
     const trait = $(".ct-sidebar__heading").text();
-    const description = $(".ct-trait-pane__input").text();
+    const description = descriptionToString(".ct-trait-pane__input");
     sendRollWithCharacter("trait", 0, {
         "name": trait,
         "description": description
+    });
+}
+
+function displayBackground() {
+    const background = $(".ct-sidebar__heading").text();
+    const description = descriptionToString(".ct-background-pane__description > p");
+    sendRollWithCharacter("trait", 0, {
+        name: background,
+        source: "Bakground",
+        description: description
     });
 }
 
@@ -873,24 +885,63 @@ function displayAction(paneClass) {
     });
 }
 
+function handleCustomText(paneClass) {
+    const customRolls = {
+        before: [],
+        replace:[],
+        after:  []
+    };
+    // Relative to normal roll msg
+    const rollOrderTypes = ["before", "after", "replace"];
+    const pane = $(`.${paneClass}`);
+    const notes = descriptionToString(pane.find(".ddbc-property-list__property:contains('Notes:')"));
+    const description = descriptionToString(pane.find(".ct-action-detail__description, .ct-spell-detail__description, .ct-item-detail__description, .ddbc-action-detail__description, .ddbc-spell-detail__description, .ddbc-item-detail__description"));
+
+    // Look for all the roll orders
+    for (const rollOrder of rollOrderTypes) {
+        // Use global, multiline and dotall flags
+        const regexp = new RegExp(`\\[\\[${rollOrder}\\]\\]\\s*(.+?)\\s*\\[\\[/${rollOrder}\\]\\]`, "gms");
+        const matches = [...notes.matchAll(regexp), ...description.matchAll(regexp)];
+        customRolls[rollOrder] = matches.map(([match, content]) => content)
+    }
+    
+    return customRolls;
+}
+
 function execute(paneClass, force_to_hit_only = false, force_damages_only = false) {
     console.log("Beyond20: Executing panel : " + paneClass, force_to_hit_only, force_damages_only);
-    if (["ct-skill-pane", "ct-custom-skill-pane"].includes(paneClass))
-        rollSkillCheck(paneClass);
-    else if (paneClass == "ct-ability-pane")
-        rollAbilityCheck();
-    else if (paneClass == "ct-ability-saving-throws-pane")
-        rollSavingThrow();
-    else if (paneClass == "ct-initiative-pane")
-        rollInitiative();
-    else if (paneClass == "ct-item-pane")
-        rollItem(false, force_to_hit_only, force_damages_only);
-    else if (["ct-action-pane", "ct-custom-action-pane"].includes(paneClass))
-        rollAction(paneClass, force_to_hit_only, force_damages_only);
-    else if (paneClass == "ct-spell-pane")
-        rollSpell(false, force_to_hit_only, force_damages_only);
-    else
-        displayPanel(paneClass);
+    const rollCustomText = (customTextList) => {
+        for (const customText of customTextList) {
+            sendRollWithCharacter("chat-message", 0, {
+                name: "",
+                message: customText
+            });
+        }
+     };
+     
+    const customTextRolls = handleCustomText(paneClass);
+    rollCustomText(customTextRolls.before);
+    if (customTextRolls.replace.length > 0) {
+        rollCustomText(customTextRolls.replace);
+    } else {
+        if (["ct-skill-pane", "ct-custom-skill-pane"].includes(paneClass))
+            rollSkillCheck(paneClass);
+        else if (paneClass == "ct-ability-pane")
+            rollAbilityCheck();
+        else if (paneClass == "ct-ability-saving-throws-pane")
+            rollSavingThrow();
+        else if (paneClass == "ct-initiative-pane")
+            rollInitiative();
+        else if (paneClass == "ct-item-pane")
+            rollItem(false, force_to_hit_only, force_damages_only);
+        else if (["ct-action-pane", "ct-custom-action-pane"].includes(paneClass))
+            rollAction(paneClass, force_to_hit_only, force_damages_only);
+        else if (paneClass == "ct-spell-pane")
+            rollSpell(false, force_to_hit_only, force_damages_only);
+        else
+            displayPanel(paneClass);
+    }
+    rollCustomText(customTextRolls.after);
 }
 
 function displayPanel(paneClass) {
@@ -905,6 +956,8 @@ function displayPanel(paneClass) {
         displayTrait();
     else if (["ct-action-pane", "ct-custom-action-pane"].includes(paneClass))
         displayAction(paneClass);
+    else if (paneClass == "ct-background-pane")
+        displayBackground();
     else
         alertify.alert("Not recognizing the currently open sidebar");
 }
@@ -998,6 +1051,12 @@ function injectRollButton(paneClass) {
         addRollButtonEx(paneClass, ".ct-sidebar__heading", { image: false });
         const name = $(".ct-sidebar__heading").text();
         checkAndInjectDiceToRolls("." + paneClass + " .ct-snippet__content,." + paneClass + " .ddbc-snippet__content", name);
+    } else if (paneClass === "ct-background-pane") {
+        if (isRollButtonAdded())
+            return;
+        addRollButtonEx(paneClass, ".ct-sidebar__heading", { image: false });
+        const name = $(".ct-sidebar__heading").text();
+        checkAndInjectDiceToRolls("." + paneClass + " .ct-background-pane__description", name);
     } else if (paneClass == "ct-trait-pane") {
         if (isRollButtonAdded())
             return;
@@ -1223,6 +1282,7 @@ function deactivateTooltipListeners(el) {
 
 var quickRollHideId = 0;
 function activateTooltipListeners(el, direction, tooltip, callback) {
+    const site = $("#site");
     el.on('mouseenter', (e) => {
         if (quickRollHideId)
             clearTimeout(quickRollHideId);
@@ -1230,6 +1290,9 @@ function activateTooltipListeners(el, direction, tooltip, callback) {
 
         const target = $(e.currentTarget)
         const position = target.offset()
+        const siteOffset = site.offset(); // Banner on top of the site can shift everything down
+        position.left -= siteOffset.left;
+        position.top -= siteOffset.top;
         if (direction === "up") {
             position.left += target.outerWidth() / 2 - tooltip.outerWidth() / 2;
             position.top -= tooltip.outerHeight() + 5;
